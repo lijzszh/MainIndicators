@@ -119,8 +119,7 @@ liqColor     = input.color(color.new(color.gray, 5), 'Line Color', group = grpLi
 liqStyleStr  = input.string('Dotted', '', options = ['Solid', 'Dashed', 'Dotted'], group = grpLiq, inline = 'liqstyle')
 liqWidth     = input.int(1, '', minval = 1, group = grpLiq, inline = 'liqstyle')
 liqShowLabel = input.bool(true, 'Show Labels', group = grpLiq)
-liqShowPrice = input.bool(true, 'Show Price', group = grpLiq) 
-liqRemoveSwept = input.bool(true, 'Remove When Swept', group = grpLiq)
+liqShowPrice = input.bool(true, 'Show Price', group = grpLiq)
 liqLabelSize = input.string('Small', 'Label Size', options = ['Tiny', 'Small', 'Normal', 'Large'], group = grpLiq, active = liqShowLabel)
 
 // ---- NEW: Key Levels inputs ----
@@ -1836,27 +1835,16 @@ addLiqLine(array<line> lns, array<label> lbs, array<float> prices, array<bool> s
 updateLiqLines(array<line> lns, array<label> lbs, array<float> prices, array<bool> swept, bool isBsl) =>
     if lns.size() > 0
         for i = lns.size() - 1 to 0
-            price = prices.get(i)
-            bool breached = isBsl ? high >= price : low <= price
-            if breached
-                if liqRemoveSwept
-                    ln_ref = lns.get(i)
-                    lb_ref = lbs.get(i)
-                    lns.remove(i)
-                    lbs.remove(i)
-                    prices.remove(i)
-                    swept.remove(i)
-                    line.delete(ln_ref)
-                    if not na(lb_ref)
-                        label.delete(lb_ref)
-                else
-                    swept.set(i, true)
-                    line.set_x2(lns.get(i), bar_index)
-            else
+            // Once swept, leave the line and label on the bar that traded through the level.
+            if not swept.get(i)
+                price = prices.get(i)
+                bool breached = isBsl ? high >= price : low <= price
                 line.set_x2(lns.get(i), bar_index)
                 lb = lbs.get(i)
                 if not na(lb)
                     label.set_x(lb, bar_index)
+                if breached
+                    swept.set(i, true)
 
 // 1) extend/freeze existing lines first
 updateLiqLines(bslLines, bslLabels, bslPrices, bslSwept, true)
